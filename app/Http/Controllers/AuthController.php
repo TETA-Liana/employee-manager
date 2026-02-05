@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 use OpenApi\Attributes as OA;
+use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 #[OA\Tag(name: 'Auth', description: 'Authentication')]
 class AuthController extends Controller
@@ -47,8 +48,14 @@ class AuthController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
+        // Generate JWT token for the user
+        $token = JWTAuth::fromUser($user);
+
+        // Send welcome email with token
+        $user->notify(new \App\Notifications\WelcomeNotification($token));
+
         return response()->json([
-            'message' => 'User registered successfully. Please login.',
+            'message' => 'User registered successfully. A welcome email with your access token has been sent to your email.',
             'user' => $user,
         ], 201);
     }
@@ -87,10 +94,9 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('api_token')->plainTextToken;
+        $token = JWTAuth::fromUser($user);
 
         return response()->json([
-            'user' => $user,
             'token' => $token,
         ]);
     }
@@ -99,20 +105,19 @@ class AuthController extends Controller
         path: '/api/auth/logout',
         summary: 'Logout current user (revoke token)',
         tags: ['Auth'],
-        security: [['sanctum' => []]],
+        security: [['bearer' => []]],
         responses: [
             new OA\Response(response: 200, description: 'Logged out'),
         ]
     )]
     public function logout(Request $request)
     {
-        $user = $request->user();
-
-        if ($user) {
-            $user->currentAccessToken()?->delete();
+        try {
+            JWTAuth::invalidate(JWTAuth::getToken());
+            return response()->json(['message' => 'Logged out successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to logout'], 500);
         }
-
-        return response()->json(['message' => 'Logged out']);
     }
 
     #[OA\Post(
