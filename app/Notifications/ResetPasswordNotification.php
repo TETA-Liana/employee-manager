@@ -48,19 +48,19 @@ class ResetPasswordNotification extends Notification
      */
     public function toMail($notifiable)
     {
-        $url = url(route('password.reset', [
-            'token' => $this->token,
-            'email' => $notifiable->getEmailForPasswordReset(),
-        ], false));
-
         return (new MailMessage)
-            ->subject(Lang::get('Reset Password Notification'))
-            ->greeting('Hello!')
-            ->line(Lang::get('You are receiving this email because we received a password reset request for your account.'))
-            ->action(Lang::get('Reset Password'), $url)
-            ->line(Lang::get('This password reset link will expire in :count minutes.', ['count' => config('auth.passwords.'.config('auth.defaults.passwords').'.expire')]))
-            ->line(Lang::get('If you did not request a password reset, no further action is required.'))
-            ->line(Lang::get('Regards,'))
-            ->salutation(config('app.name'));
+            ->subject('Your Password Reset OTP - ' . config('app.name'))
+            ->greeting('Hi ' . ($notifiable->name ?? 'there') . ',')
+            ->line('You recently requested to reset your password for your ' . config('app.name') . ' account.')
+            ->line('Please use the following **6-digit One-Time Password (OTP)** to complete the process:')
+            ->line('```')
+            ->line($this->token)
+            ->line('```')
+            ->line('This OTP will expire in ' . config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60) . ' minutes.')
+            ->line('If you didn\'t request this, you can safely ignore this email.')
+            ->salutation('Best regards, The ' . config('app.name') . ' Team');
     }
+
+
+
 }

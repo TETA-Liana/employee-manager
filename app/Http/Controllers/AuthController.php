@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 use OpenApi\Attributes as OA;
+use Illuminate\Support\Facades\DB;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
+
 
 #[OA\Tag(name: 'Auth', description: 'Authentication')]
 class AuthController extends Controller
@@ -122,7 +124,7 @@ class AuthController extends Controller
 
     #[OA\Post(
         path: '/api/auth/forgot-password',
-        summary: 'Request password reset link',
+        summary: 'Request password reset OTP',
         tags: ['Auth'],
         requestBody: new OA\RequestBody(
             required: true,
@@ -134,35 +136,52 @@ class AuthController extends Controller
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: 'Reset link sent'),
-            new OA\Response(response: 422, description: 'Error sending link'),
+            new OA\Response(response: 200, description: 'Reset OTP sent'),
+            new OA\Response(response: 422, description: 'Error sending OTP'),
         ]
     )]
+
     public function forgotPassword(Request $request)
     {
         $validated = $request->validate([
             'email' => ['required', 'email'],
         ]);
 
-        $status = Password::sendResetLink([
-            'email' => $validated['email'],
-        ]);
+        $user = User::where('email', $validated['email'])->first();
 
-        return $status === Password::RESET_LINK_SENT
-            ? response()->json(['message' => __($status)])
-            : response()->json(['message' => __($status)], 422);
+        if (!$user) {
+            return response()->json(['message' => __('passwords.user')], 422);
+        }
+
+        // Generate 6-digit OTP
+        $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        // Store OTP in password_reset_tokens table
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $user->email],
+            [
+                'token' => Hash::make($otp),
+                'created_at' => now()
+            ]
+        );
+
+        // Send Notification
+        $user->notify(new \App\Notifications\ResetPasswordNotification($otp));
+
+        return response()->json(['message' => __('passwords.sent')]);
     }
+
 
     #[OA\Post(
         path: '/api/auth/reset-password',
-        summary: 'Reset password using token',
+        summary: 'Reset password using OTP',
         tags: ['Auth'],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['token', 'email', 'password', 'password_confirmation'],
+                required: ['otp', 'email', 'password', 'password_confirmation'],
                 properties: [
-                    new OA\Property(property: 'token', type: 'string'),
+                    new OA\Property(property: 'otp', type: 'string', minLength: 6, maxLength: 6),
                     new OA\Property(property: 'email', type: 'string', format: 'email'),
                     new OA\Property(property: 'password', type: 'string', format: 'password', minLength: 8),
                     new OA\Property(property: 'password_confirmation', type: 'string', format: 'password', minLength: 8),
@@ -171,30 +190,46 @@ class AuthController extends Controller
         ),
         responses: [
             new OA\Response(response: 200, description: 'Password reset'),
-            new OA\Response(response: 422, description: 'Invalid token or data'),
+            new OA\Response(response: 422, description: 'Invalid OTP or data'),
         ]
     )]
+
     public function resetPassword(Request $request)
     {
         $validated = $request->validate([
-            'token' => ['required', 'string'],
+            'otp' => ['required', 'string', 'size:6'],
             'email' => ['required', 'email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $status = Password::reset(
-            $validated,
-            function (User $user, string $password): void {
-                $user->forceFill([
-                    'password' => Hash::make($password),
-                ])->save();
+        $record = DB::table('password_reset_tokens')->where('email', $validated['email'])->first();
 
-                $user->tokens()->delete();
-            }
-        );
+        if (!$record || !Hash::check($validated['otp'], $record->token)) {
+            return response()->json(['message' => __('passwords.token')], 422);
+        }
 
-        return $status === Password::PASSWORD_RESET
-            ? response()->json(['message' => __($status)])
-            : response()->json(['message' => __($status)], 422);
+        // Check expiry (standard is 60 minutes)
+        $expire = config('auth.passwords.users.expire', 60);
+        if (now()->subMinutes($expire)->gt($record->created_at)) {
+            return response()->json(['message' => __('passwords.token')], 422);
+        }
+
+        $user = User::where('email', $validated['email'])->first();
+        if (!$user) {
+            return response()->json(['message' => __('passwords.user')], 422);
+        }
+
+        $user->forceFill([
+            'password' => Hash::make($validated['password']),
+        ])->save();
+
+        // Delete the token record
+        DB::table('password_reset_tokens')->where('email', $validated['email'])->delete();
+
+        // Also revoke other sessions/tokens if needed
+        $user->tokens()->delete();
+
+        return response()->json(['message' => __('passwords.reset')]);
     }
+
 }

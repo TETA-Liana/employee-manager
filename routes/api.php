@@ -30,6 +30,7 @@ Route::middleware('auth:api')->group(function () {
 Route::get('openapi.json', function () {
     $openapi = OpenApiGenerator::scan([app_path()]);
 
-    return response()->json($openapi->toArray());
+    return response($openapi->toJson())->header('Content-Type', 'application/json');
 });
+
 

@@ -6,8 +6,9 @@ use OpenApi\Attributes as OA;
 
 #[OA\Info(
     version: '1.0.0',
-    title: 'Employee Manager API',
-    description: 'Simple employee management API built with Laravel 12, featuring Sanctum auth, employees, attendance, and reports.',
+    title: 'LTA Employee Manager API',
+    description: 'Advanced employee management system (LTA) featuring JWT authentication, attendance tracking, and reporting.',
+
 )]
 #[OA\Server(
     url: 'http://localhost',

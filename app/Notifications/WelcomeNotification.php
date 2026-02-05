@@ -36,21 +36,22 @@ class WelcomeNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Welcome to ' . config('app.name'))
-            ->greeting('Hello ' . $notifiable->name . '!')
-            ->line('Welcome to our application! Your account has been successfully created.')
-            ->line('Here are your login credentials:')
+            ->subject('Welcome to ' . config('app.name') . '! 🚀')
+            ->greeting('Hi ' . $notifiable->name . '!')
+            ->line('We\'re thrilled to have you join us! Your account has been successfully created and is ready to use.')
+            ->line('To get you started immediately, we\'ve generated your secure access token below.')
+            ->line('**Your Credentials:**')
             ->line('**Email:** ' . $notifiable->email)
             ->line('**Your Access Token:**')
             ->line('```')
             ->line($this->token)
             ->line('```')
-            ->line('You can use this token to access the API by including it in the Authorization header:')
-            ->line('`Authorization: Bearer ' . substr($this->token, 0, 20) . '...`')
-            ->action('Login to Dashboard', url('/'))
-            ->line('Thank you for joining us!')
-            ->salutation('Best regards, ' . config('app.name') . ' Team');
+            ->line('Include this token in the `Authorization` header as a `Bearer` token to interact with our API.')
+            ->action('Explore Dashboard', url('/'))
+            ->line('If you have any questions, feel free to reply to this email.')
+            ->salutation('Best regards, The ' . config('app.name') . ' Team');
     }
+
 
     /**
      * Get the array representation of the notification.
