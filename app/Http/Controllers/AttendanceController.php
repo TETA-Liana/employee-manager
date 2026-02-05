@@ -17,7 +17,7 @@ class AttendanceController extends Controller
         path: '/api/attendance',
         summary: 'List attendance records',
         tags: ['Attendance'],
-        security: [['sanctum' => []]],
+        security: [['bearer' => []]],
         parameters: [
             new OA\Parameter(
                 name: 'date',
@@ -42,16 +42,17 @@ class AttendanceController extends Controller
             $query->whereDate('check_in_at', $request->string('date')->toString());
         }
 
-        $attendances = $query->paginate(15);
+        $attendances = $query->get();
 
         return response()->json($attendances);
     }
+
 
     #[OA\Post(
         path: '/api/attendance/check-in',
         summary: 'Record employee check-in',
         tags: ['Attendance'],
-        security: [['sanctum' => []]],
+        security: [['bearer' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
@@ -93,7 +94,7 @@ class AttendanceController extends Controller
         path: '/api/attendance/check-out',
         summary: 'Record employee check-out',
         tags: ['Attendance'],
-        security: [['sanctum' => []]],
+        security: [['bearer' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(

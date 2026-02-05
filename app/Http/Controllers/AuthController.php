@@ -9,7 +9,11 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 use OpenApi\Attributes as OA;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Str;
+
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
+
 
 
 #[OA\Tag(name: 'Auth', description: 'Authentication')]
@@ -32,9 +36,20 @@ class AuthController extends Controller
             )
         ),
         responses: [
-            new OA\Response(response: 201, description: 'User registered'),
+            new OA\Response(
+                response: 201, 
+                description: 'User registered',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'message', type: 'string'),
+                        new OA\Property(property: 'user', ref: '#/components/schemas/User'),
+                    ]
+                )
+            ),
             new OA\Response(response: 422, description: 'Validation error'),
         ]
+
+
     )]
     public function register(Request $request)
     {
@@ -50,16 +65,15 @@ class AuthController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
-        // Generate JWT token for the user
-        $token = JWTAuth::fromUser($user);
-
-        // Send welcome email with token
-        $user->notify(new \App\Notifications\WelcomeNotification($token));
+        // Send welcome email (no token)
+        $user->notify(new \App\Notifications\WelcomeNotification());
 
         return response()->json([
-            'message' => 'User registered successfully. A welcome email with your access token has been sent to your email.',
+            'message' => 'User registered successfully. A welcome email has been sent to your email.',
             'user' => $user,
         ], 201);
+
+
     }
 
     #[OA\Post(
@@ -77,9 +91,22 @@ class AuthController extends Controller
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: 'Authenticated'),
+            new OA\Response(
+                response: 200, 
+                description: 'Authenticated',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'access_token', type: 'string'),
+                        new OA\Property(property: 'refresh_token', type: 'string'),
+                        new OA\Property(property: 'token_type', type: 'string', example: 'bearer'),
+                        new OA\Property(property: 'expires_in', type: 'integer'),
+                    ]
+                )
+            ),
             new OA\Response(response: 422, description: 'Validation / auth error'),
         ]
+
+
     )]
     public function login(Request $request)
     {
@@ -96,11 +123,25 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = JWTAuth::fromUser($user);
+        $token = JWTAuth::claims(['type' => 'access'])->fromUser($user);
+
+        // Generate Refresh JWT (1 hour) - Set TTL dynamically
+        Config::set('jwt.ttl', config('jwt.refresh_ttl', 60));
+        $refreshToken = JWTAuth::claims(['type' => 'refresh'])->fromUser($user);
+        
+        // Restore default TTL for subsequent operations in same request if any
+        Config::set('jwt.ttl', config('jwt.ttl', 15));
 
         return response()->json([
-            'token' => $token,
+
+            'access_token' => $token,
+            'refresh_token' => $refreshToken,
+            'token_type' => 'bearer',
+            'expires_in' => config('jwt.ttl') * 60,
         ]);
+
+
+
     }
 
     #[OA\Post(
@@ -116,11 +157,92 @@ class AuthController extends Controller
     {
         try {
             JWTAuth::invalidate(JWTAuth::getToken());
-            return response()->json(['message' => 'Logged out successfully']);
+            return response()->json(['message' => 'Logged out successfully. Token invalidated.']);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Failed to logout'], 500);
         }
     }
+
+
+
+    #[OA\Post(
+        path: '/api/auth/refresh',
+        summary: 'Refresh the access token using a refresh token',
+        tags: ['Auth'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['refresh_token'],
+                properties: [
+                    new OA\Property(property: 'refresh_token', type: 'string'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200, 
+                description: 'Token refreshed',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'access_token', type: 'string'),
+                        new OA\Property(property: 'refresh_token', type: 'string'),
+                        new OA\Property(property: 'token_type', type: 'string', example: 'bearer'),
+                        new OA\Property(property: 'expires_in', type: 'integer'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Invalid refresh token'),
+        ]
+    )]
+    public function refresh(Request $request)
+    {
+        $validated = $request->validate([
+            'refresh_token' => ['required', 'string'],
+        ]);
+
+        try {
+            $payload = JWTAuth::setToken($validated['refresh_token'])->getPayload();
+            
+            if ($payload->get('type') !== 'refresh') {
+                return response()->json(['message' => 'Invalid token type'], 401);
+            }
+
+            $user = User::find($payload->get('sub'));
+            if (!$user) {
+                return response()->json(['message' => 'User not found'], 401);
+            }
+
+            // Invalidate old tokens (Access in header + Refresh just used)
+            try {
+                JWTAuth::setToken($validated['refresh_token'])->invalidate();
+                if ($oldAccessToken = JWTAuth::getToken()) {
+                    JWTAuth::invalidate($oldAccessToken);
+                }
+            } catch (\Exception $e) {
+                // Ignore if invalidation fails
+            }
+
+            // Generate new pair
+            $newAccessToken = JWTAuth::claims(['type' => 'access'])->fromUser($user);
+            
+            Config::set('jwt.ttl', config('jwt.refresh_ttl', 60));
+            $newRefreshToken = JWTAuth::claims(['type' => 'refresh'])->fromUser($user);
+            Config::set('jwt.ttl', config('jwt.ttl', 15));
+
+            return response()->json([
+
+                'access_token' => $newAccessToken,
+                'refresh_token' => $newRefreshToken,
+                'token_type' => 'bearer',
+                'expires_in' => config('jwt.ttl') * 60,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Invalid or expired refresh token'], 401);
+        }
+    }
+
+
+
 
     #[OA\Post(
         path: '/api/auth/forgot-password',
@@ -147,7 +269,14 @@ class AuthController extends Controller
             'email' => ['required', 'email'],
         ]);
 
+        // Delete expired OTPs globally for security
+        $expire = config('auth.passwords.users.expire', 15);
+        DB::table('password_reset_tokens')
+            ->where('created_at', '<', now()->subMinutes($expire))
+            ->delete();
+
         $user = User::where('email', $validated['email'])->first();
+
 
         if (!$user) {
             return response()->json(['message' => __('passwords.user')], 422);
@@ -208,11 +337,13 @@ class AuthController extends Controller
             return response()->json(['message' => __('passwords.token')], 422);
         }
 
-        // Check expiry (standard is 60 minutes)
-        $expire = config('auth.passwords.users.expire', 60);
+        // Check expiry
+        $expire = config('auth.passwords.users.expire', 15);
         if (now()->subMinutes($expire)->gt($record->created_at)) {
+            DB::table('password_reset_tokens')->where('email', $validated['email'])->delete();
             return response()->json(['message' => __('passwords.token')], 422);
         }
+
 
         $user = User::where('email', $validated['email'])->first();
         if (!$user) {

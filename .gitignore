@@ -1,24 +1,41 @@
-*.log
-.DS_Store
-.env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
-/.fleet
-/.idea
-/.nova
-/.phpunit.cache
-/.vscode
-/.zed
+# Sensitive Configuration and Data
+/.env
+/.env.*
+/.env.backup
+/.env.production
 /auth.json
-/node_modules
-/public/build
-/public/hot
+/lta
+/database/*.sqlite
+/database/*.db
+/*.sqlite
+/*.db
+
+# Developer Scripts and Logs
+/test_*.php
+/register_user.php
+/composer_error.log
+/*.log
+.phpunit.result.cache
+
+# Dependencies and Build
+/node_modules/
+/vendor/
+/public/build/
+/public/hot/
 /public/storage
+
+# Storage and Cache
 /storage/*.key
 /storage/pail
-/vendor
+/.phpunit.cache/
+/.fleet/
+/.idea/
+/.nova/
+/.vscode/
+/.zed/
+
+# System Files
+.DS_Store
+Thumbs.db
 Homestead.json
 Homestead.yaml
-Thumbs.db

@@ -14,7 +14,7 @@ class EmployeeController extends Controller
         path: '/api/employees',
         summary: 'List employees',
         tags: ['Employees'],
-        security: [['sanctum' => []]],
+        security: [['bearer' => []]],
         responses: [
             new OA\Response(
                 response: 200,
@@ -25,16 +25,17 @@ class EmployeeController extends Controller
     )]
     public function index(): JsonResponse
     {
-        $employees = Employee::query()->latest()->paginate(15);
+        $employees = Employee::query()->latest()->get();
 
         return response()->json($employees);
     }
+
 
     #[OA\Post(
         path: '/api/employees',
         summary: 'Create a new employee',
         tags: ['Employees'],
-        security: [['sanctum' => []]],
+        security: [['bearer' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
@@ -74,7 +75,7 @@ class EmployeeController extends Controller
         path: '/api/employees/{id}',
         summary: 'Get a single employee',
         tags: ['Employees'],
-        security: [['sanctum' => []]],
+        security: [['bearer' => []]],
         parameters: [
             new OA\Parameter(
                 name: 'id',
@@ -101,7 +102,7 @@ class EmployeeController extends Controller
         path: '/api/employees/{id}',
         summary: 'Update an employee',
         tags: ['Employees'],
-        security: [['sanctum' => []]],
+        security: [['bearer' => []]],
         parameters: [
             new OA\Parameter(
                 name: 'id',
@@ -148,7 +149,7 @@ class EmployeeController extends Controller
         path: '/api/employees/{id}',
         summary: 'Delete an employee',
         tags: ['Employees'],
-        security: [['sanctum' => []]],
+        security: [['bearer' => []]],
         parameters: [
             new OA\Parameter(
                 name: 'id',

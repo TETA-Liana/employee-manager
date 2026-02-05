@@ -1,16 +1,10 @@
 {
     "openapi": "3.0.0",
     "info": {
-        "title": "Employee Manager API",
-        "description": "Simple employee management API built with Laravel 12, featuring Sanctum auth, employees, attendance, and reports.",
+        "title": "LTA Employee Manager API",
+        "description": "Advanced employee management system (LTA) featuring JWT authentication, attendance tracking, and reporting.",
         "version": "1.0.0"
     },
-    "servers": [
-        {
-            "url": "http://localhost",
-            "description": "Local development server"
-        }
-    ],
     "paths": {
         "/api/attendance": {
             "get": {
@@ -47,7 +41,7 @@
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearer": []
                     }
                 ]
             }
@@ -94,7 +88,7 @@
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearer": []
                     }
                 ]
             }
@@ -141,7 +135,7 @@
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearer": []
                     }
                 ]
             }
@@ -171,7 +165,7 @@
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearer": []
                     }
                 ]
             }
@@ -201,7 +195,53 @@
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/reports/attendance/daily/email": {
+            "post": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Send daily attendance report (PDF & Excel) to your email",
+                "operationId": "4da0af1508b1abbc0acd5058e0f4c02a",
+                "parameters": [
+                    {
+                        "name": "date",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Report queued for delivery",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The report has been queued for delivery to your email."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
                     }
                 ]
             }
@@ -250,7 +290,22 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "User registered"
+                        "description": "User registered",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "user": {
+                                            "$ref": "#/components/schemas/User"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "422": {
                         "description": "Validation error"
@@ -291,7 +346,29 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Authenticated"
+                        "description": "Authenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "access_token": {
+                                            "type": "string"
+                                        },
+                                        "refresh_token": {
+                                            "type": "string"
+                                        },
+                                        "token_type": {
+                                            "type": "string",
+                                            "example": "bearer"
+                                        },
+                                        "expires_in": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "422": {
                         "description": "Validation / auth error"
@@ -313,9 +390,66 @@
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearer": []
                     }
                 ]
+            }
+        },
+        "/api/auth/refresh": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Refresh the access token using a refresh token",
+                "operationId": "b2eae7a8032954d25b46c7ec6f489c68",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "refresh_token"
+                                ],
+                                "properties": {
+                                    "refresh_token": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Token refreshed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "access_token": {
+                                            "type": "string"
+                                        },
+                                        "refresh_token": {
+                                            "type": "string"
+                                        },
+                                        "token_type": {
+                                            "type": "string",
+                                            "example": "bearer"
+                                        },
+                                        "expires_in": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid refresh token"
+                    }
+                }
             }
         },
         "/api/auth/forgot-password": {
@@ -323,7 +457,7 @@
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Request password reset link",
+                "summary": "Request password reset OTP",
                 "operationId": "cff9b52a898f73f39d684747bd69c4e1",
                 "requestBody": {
                     "required": true,
@@ -346,10 +480,10 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Reset link sent"
+                        "description": "Reset OTP sent"
                     },
                     "422": {
-                        "description": "Error sending link"
+                        "description": "Error sending OTP"
                     }
                 }
             }
@@ -359,7 +493,7 @@
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Reset password using token",
+                "summary": "Reset password using OTP",
                 "operationId": "6af92e090f994419a2295111b391a205",
                 "requestBody": {
                     "required": true,
@@ -367,14 +501,16 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "token",
+                                    "otp",
                                     "email",
                                     "password",
                                     "password_confirmation"
                                 ],
                                 "properties": {
-                                    "token": {
-                                        "type": "string"
+                                    "otp": {
+                                        "type": "string",
+                                        "maxLength": 6,
+                                        "minLength": 6
                                     },
                                     "email": {
                                         "type": "string",
@@ -401,7 +537,7 @@
                         "description": "Password reset"
                     },
                     "422": {
-                        "description": "Invalid token or data"
+                        "description": "Invalid OTP or data"
                     }
                 }
             }
@@ -430,7 +566,7 @@
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearer": []
                     }
                 ]
             },
@@ -488,7 +624,7 @@
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearer": []
                     }
                 ]
             }
@@ -527,7 +663,7 @@
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearer": []
                     }
                 ]
             },
@@ -590,7 +726,7 @@
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearer": []
                     }
                 ]
             },
@@ -617,7 +753,7 @@
                 },
                 "security": [
                     {
-                        "sanctum": []
+                        "bearer": []
                     }
                 ]
             }
@@ -647,6 +783,32 @@
                     "phone_number": {
                         "type": "string",
                         "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "User": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "John Doe"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "john@example.com"
                     },
                     "created_at": {
                         "type": "string",
@@ -691,9 +853,9 @@
             }
         },
         "securitySchemes": {
-            "sanctum": {
+            "bearer": {
                 "type": "http",
-                "bearerFormat": "API Token",
+                "bearerFormat": "JWT",
                 "scheme": "bearer"
             }
         }

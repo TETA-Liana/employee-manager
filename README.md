@@ -1,133 +1,123 @@
-## Employee Manager API
+# 🚀 LTA Employee Manager API
 
-Simple employee management API built with **Laravel 12**, featuring **Sanctum** authentication, employee CRUD, attendance tracking with queued email notifications, and daily attendance reports in **PDF** and **Excel** formats.
+[![Laravel Version](https://img.shields.io/badge/Laravel-11.x-red.svg)](https://laravel.com)
+[![PHP Version](https://img.shields.io/badge/PHP-8.2%2B-blue.svg)](https://php.net)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-### Stack
+A robust and modern **Employee Management System** built with the Laravel 11 framework. This API provides comprehensive employee lifecycle management, attendance tracking with automated notifications, and high-quality reporting in PDF and Excel formats.
 
-- **Backend**: Laravel 12 (PHP 8.2+)
-- **Auth**: Laravel Sanctum (stateless API tokens)
-- **Queues**: Database queue
-- **Mail**: Mailpit
-- **PDF**: `barryvdh/laravel-snappy`
-- **Excel**: `maatwebsite/excel`
-- **Container tooling**: Laravel Sail
-- **Docs**: OpenAPI v3 (PHP 8 attributes, `zircote/swagger-php`)
+---
 
-### Local setup (without Sail)
+## ✨ Core Features
 
-- **Clone & install**
-  - `composer install`
-  - Copy `.env.example` to `.env`
-  - `php artisan key:generate`
-- **Database**
-  - By default the app uses **SQLite** (see `DB_CONNECTION=sqlite` in `.env.example`).
-  - For SQLite, no extra configuration is needed; migrations will create tables automatically.
-- **Migrations & seeders**
-  - `php artisan migrate`
-- **Queue worker**
-  - For queued emails in local dev, run:
-    - `php artisan queue:work`
-- **Serve the API**
-  - `php artisan serve` (defaults to `http://127.0.0.1:8000`)
+### 🔐 Advanced Authentication
+- **Stateless JWT Auth**: Implemented using `php-open-source-saver/jwt-auth` for secure, database-free token management.
+- **Dual Token System**: Access and Refresh tokens for seamless session persistence.
+- **OTP Recovery**: Secure 6-digit numeric OTP system for password resets.
 
-### Local setup with Laravel Sail (Docker)
+### 👥 Employee Management
+- **Full CRUD**: Comprehensive API endpoints for managing employee profiles.
+- **Data Integrity**: Enforced validation rules and relational database constraints.
 
-1. **Install Sail dependencies**
-   - Ensure Docker is running.
-   - `composer install`
-2. **Install Sail (if not yet installed)**
-   - `php artisan sail:install` and choose MySQL & Redis if prompted.
-3. **Update `.env` for Sail**
-   - Switch database to MySQL (see commented section in `.env.example`):
-     - `DB_CONNECTION=mysql`
-     - `DB_HOST=mysql`
-     - `DB_PORT=3306`
-     - `DB_DATABASE=employee_manager`
-     - `DB_USERNAME=sail`
-     - `DB_PASSWORD=password`
-   - Ensure Mailpit settings:
-     - `MAIL_MAILER=smtp`
-     - `MAIL_HOST=mailpit`
-     - `MAIL_PORT=1025`
-4. **Start containers**
-   - `./vendor/bin/sail up -d`
-5. **Run migrations & queue worker**
-   - `./vendor/bin/sail artisan migrate`
-   - `./vendor/bin/sail artisan queue:work`
-6. **Access services**
-   - API: `http://localhost`
-   - Mailpit UI: `http://localhost:8025`
+### 🕒 Attendance & Notifications
+- **Smart Check-in/out**: Simple yet powerful attendance logging system.
+- **Queued Alerts**: Asynchronous email notifications triggered on attendance events.
+- **Automated Daily Reports**: Scheduled tasks to generate and distribute daily summaries.
 
-### Mailpit
+### 📊 Professional Reporting
+- **Multi-format Exports**: Generate attendance reports in high-fidelity **PDF** (`laravel-dompdf`) and **Excel** (`maatwebsite/excel`).
+- **Customizable Views**: Tailored report layouts for business needs.
 
-- Mailpit is configured via `.env.example` to use:
-  - `MAIL_MAILER=smtp`
-  - `MAIL_HOST=mailpit`
-  - `MAIL_PORT=1025`
-- With Sail, Mailpit is available on `http://localhost:8025`. All queued attendance emails will appear there.
+### 📖 Interactive Documentation
+- **OpenAPI v3**: Fully documented API accessible via Swagger UI.
+- **Real-time Testing**: Try out endpoints directly from the browser.
 
-### Authentication (Sanctum)
+---
 
-- **Register**: `POST /api/auth/register`
-- **Login**: `POST /api/auth/login`
-- **Logout**: `POST /api/auth/logout` (requires `Authorization: Bearer {token}`)
-- **Forgot password**: `POST /api/auth/forgot-password`
-- **Reset password**: `POST /api/auth/reset-password`
+## 🛠️ Tech Stack
 
-All protected endpoints require a **Bearer token** obtained from the login or register endpoint:
+- **Backend**: [Laravel 11](https://laravel.com)
+- **Database**: PostgreSQL (Recommended) / SQLite
+- **Auth**: [JWT-Auth](https://jwt-auth-it.readthedocs.io/)
+- **Reports**: [DOMPDF](https://github.com/barryvdh/laravel-dompdf) & [Laravel Excel](https://docs.laravel-excel.com/)
+- **Docs**: [Swagger PHP](https://github.com/zircote/swagger-php)
 
-- `Authorization: Bearer {token}`
+---
 
-### Employee management
+## 🚀 Getting Started
 
-All employee routes are protected by `auth:sanctum`:
+### 1. Prerequisites
+- **PHP 8.2** or higher
+- **Composer**
+- **PostgreSQL** (or any Laravel-supported database)
+- **Mail Server** (Mailpit, Gmail SMTP, etc.)
 
-- `GET /api/employees` — list employees (paginated).
-- `POST /api/employees` — create employee.
-- `GET /api/employees/{id}` — show employee.
-- `PUT /api/employees/{id}` — update employee.
-- `DELETE /api/employees/{id}` — delete employee.
+### 2. Installation & Setup
 
-Required fields when creating:
+```powershell
+# Clone the repository
+git clone <repository-url>
+cd employee-manager
 
-- `names` (string)
-- `email` (unique)
-- `employee_identifier` (unique)
-- `phone_number` (optional)
+# Install PHP dependencies
+composer install
 
-### Attendance management
+# Configure Environment
+copy .env.example .env
 
-All attendance routes are protected by `auth:sanctum`:
+# Generate Application & JWT Secrets
+php artisan key:generate
+php artisan jwt:secret
+```
 
-- `GET /api/attendance?date=YYYY-MM-DD` — list attendance records (optional date filter).
-- `POST /api/attendance/check-in`
-  - Body: `{ "employee_id": 1 }`
-  - Records a **check-in** at current time and queues an email to the employee.
-- `POST /api/attendance/check-out`
-  - Body: `{ "employee_id": 1 }`
-  - Sets `check_out_at` on the latest open attendance record and queues an email.
+### 3. Database Initialization
 
-### Attendance reports
+Configure your `DB_` credentials in `.env`, then run:
+```powershell
+php artisan migrate
+```
 
-All report routes are protected by `auth:sanctum` and accept an optional `date` query param (defaults to today):
+### 4. Running the Application
 
-- **PDF daily report**
-  - `GET /api/reports/attendance/daily/pdf?date=YYYY-MM-DD`
-  - Returns a PDF file generated via `laravel-snappy` based on the `resources/views/reports/daily_attendance.blade.php` template.
-- **Excel daily report**
-  - `GET /api/reports/attendance/daily/excel?date=YYYY-MM-DD`
-  - Returns an `.xlsx` export generated by `maatwebsite/excel`.
+Start the local development server:
+```powershell
+php artisan serve
+```
+*The API will be available at `http://127.0.0.1:8000`*
 
-### OpenAPI documentation
+### 5. Background Tasks (Queues)
 
-- The API spec is generated using **PHP 8 attributes** (`OpenApi\Attributes` from `zircote/swagger-php`).
-- Fetch the OpenAPI v3 JSON:
-  - `GET /api/openapi.json`
-- You can point tools like Swagger UI or Postman to this endpoint to explore the API.
+To handle email notifications and report generation in the background:
+```powershell
+php artisan queue:work
+```
 
-### Running tests
+---
 
-- The project ships with PHPUnit configuration using an in-memory SQLite database.
-- To run the test suite:
-  - `php artisan test`
-  - Or with Sail: `./vendor/bin/sail artisan test`
+## 📂 API Reference
+
+| Endpoint | Method | Description |
+| :--- | :--- | :--- |
+| `/api/auth/login` | `POST` | Exchange credentials for JWT tokens |
+| `/api/auth/refresh` | `POST` | Refresh expired access tokens |
+| `/api/employees` | `GET/POST` | List or create employee records |
+| `/api/employees/{id}` | `PUT/DELETE` | Update or remove an employee |
+| `/api/attendance/check-in` | `POST` | Record attendance start |
+| `/api/attendance/check-out` | `POST` | Record attendance end |
+| `/api/reports/daily/pdf` | `GET` | Export daily report as PDF |
+| `/api/reports/daily/excel` | `GET` | Export daily report as Excel |
+
+Detailed documentation is available at:
+👉 **`http://127.0.0.1:8000/api/docs`**
+
+---
+
+## 🛡️ Security
+This project is configured with security in mind:
+- Sensitive variables are restricted to `.env` (which is git-ignored).
+- All requests are protected by the `auth:api` middleware.
+- Input validation on all state-changing endpoints.
+
+---
+
+*Built with ❤️ by the **Liana Team Attendance (LTA)** Team.*

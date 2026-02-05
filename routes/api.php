@@ -16,6 +16,8 @@ Route::prefix('auth')->group(function () {
 
 Route::middleware('auth:api')->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout']);
+    Route::post('auth/refresh', [AuthController::class, 'refresh']);
+
 
     Route::apiResource('employees', EmployeeController::class);
 
@@ -25,12 +27,19 @@ Route::middleware('auth:api')->group(function () {
 
     Route::get('reports/attendance/daily/pdf', [AttendanceReportController::class, 'dailyPdf']);
     Route::get('reports/attendance/daily/excel', [AttendanceReportController::class, 'dailyExcel']);
+    Route::post('reports/attendance/daily/email', [AttendanceReportController::class, 'sendEmailReport']);
 });
+
 
 Route::get('openapi.json', function () {
     $openapi = OpenApiGenerator::scan([app_path()]);
 
     return response($openapi->toJson())->header('Content-Type', 'application/json');
 });
+
+Route::get('docs', function () {
+    return view('docs.swagger');
+});
+
 
 

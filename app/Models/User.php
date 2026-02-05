@@ -60,6 +60,8 @@ class User extends Authenticatable implements JWTSubject
         'password',
     ];
 
+
+
     /**
      * The attributes that should be hidden for serialization.
      *
@@ -69,6 +71,8 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'remember_token',
     ];
+
+
 
     /**
      * Get the attributes that should be cast.
@@ -81,5 +85,7 @@ class User extends Authenticatable implements JWTSubject
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+
+
     }
 }

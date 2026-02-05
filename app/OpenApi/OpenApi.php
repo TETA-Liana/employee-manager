@@ -10,16 +10,15 @@ use OpenApi\Attributes as OA;
     description: 'Advanced employee management system (LTA) featuring JWT authentication, attendance tracking, and reporting.',
 
 )]
-#[OA\Server(
-    url: 'http://localhost',
-    description: 'Local development server',
-)]
+
 #[OA\SecurityScheme(
-    securityScheme: 'sanctum',
+
+    securityScheme: 'bearer',
     type: 'http',
     scheme: 'bearer',
-    bearerFormat: 'API Token',
+    bearerFormat: 'JWT',
 )]
+
 #[OA\Schema(
     schema: 'Employee',
     properties: [
@@ -33,7 +32,18 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'User',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 1),
+        new OA\Property(property: 'name', type: 'string', example: 'John Doe'),
+        new OA\Property(property: 'email', type: 'string', format: 'email', example: 'john@example.com'),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
+        new OA\Property(property: 'updated_at', type: 'string', format: 'date-time'),
+    ]
+)]
+#[OA\Schema(
     schema: 'Attendance',
+
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 1),
         new OA\Property(property: 'employee_id', type: 'integer', example: 1),
