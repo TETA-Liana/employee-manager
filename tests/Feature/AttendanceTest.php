@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 use Tests\TestCase;
 
 class AttendanceTest extends TestCase
@@ -18,7 +19,7 @@ class AttendanceTest extends TestCase
     {
         $user = User::factory()->create();
 
-        return $user->createToken('test')->plainTextToken;
+        return JWTAuth::fromUser($user);
     }
 
     public function test_can_check_in_and_out_with_queued_emails(): void

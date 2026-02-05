@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 use Tests\TestCase;
 
 class EmployeeTest extends TestCase
@@ -15,7 +16,7 @@ class EmployeeTest extends TestCase
     {
         $user = User::factory()->create();
 
-        return $user->createToken('test')->plainTextToken;
+        return JWTAuth::fromUser($user);
     }
 
     public function test_can_crud_employees(): void

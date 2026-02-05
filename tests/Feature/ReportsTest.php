@@ -6,6 +6,7 @@ use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 use Tests\TestCase;
 
 class ReportsTest extends TestCase
@@ -16,7 +17,7 @@ class ReportsTest extends TestCase
     {
         $user = User::factory()->create();
 
-        return $user->createToken('test')->plainTextToken;
+        return JWTAuth::fromUser($user);
     }
 
     protected function seedAttendance(): string
